@@ -22,11 +22,11 @@ impl Processor {
     // run a single CPU cycle
     pub fn step(&self) {
         // Fetch Opcode
-         let op = self.ram[self.PC]
+        let op = self.ram[self.PC]
 
-        // Decode Opcode
-        // Execute Opcode
-         self.decode_exec(op)
+            // Decode Opcode
+            // Execute Opcode
+            self.decode_exec(op)
     }
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
@@ -74,51 +74,97 @@ impl Processor {
                 match n {
                     0x0 => { // 8XY0 - Vx=Vy
 
-                    }
+                }
                     0x1 => { // 8XY1 - Vx=Vx|Vy
 
-                    }
+                }
                     0x2 => { // 8XY2 - Vx=Vx&Vy
 
-                    }
+                }
                     0x3 => { // 8XY3 - Vx=Vx^Vy
 
-                    }
+                }
                     0x4 => { // 8XY4 - Vx += Vy
 
-                    }
+                }
                     0x5 => { // 8XY5 - Vx -= Vy
 
-                    }
+                }
                     0x6 => { // 8XY6 - Vx>>=1
 
-                    }
+                }
                     0x7 => { // 8XY7 - Vx=Vy-Vx
 
-                    }
+                }
                     0xE => { // 8XYE - Vx<<=1
+                }
+                    _ => {
+                        println!("invalid opcode")
+                }
+                }
+            }
+            0xA =>  { // ANNN - I = NNN
+
+            }
+            0xB =>  { // BNNN - PC=V0+NNN
+
+            }
+            0xC => { // CXNN - Vx=rand()&NN
+
+            }
+            0xD => { // DXYN - draw(Vx,Vy,N)
+
+            }
+            0xE => {
+                match nn {
+                    0x9E  => { // EX9E - if(key()==Vx)
+                    }
+                    0xA1 => { // EXA1 - if(key()!=Vx)
                     }
                     _ => {
                         println!("invalid opcode")
                     }
                 }
             }
+            0xF => {
+                match nn {
+                    0x07 => { // FX07 - Vx = get_delay()
+                    }
+                    0x0A => { // FX0A - Vx = get_key()
+                    }
+                    0x15 => { // FX15 - delay_timer(Vx)
+                    }
+                    0x18 => { // FX18 - sound_timer(Vx)
+                    }
+                    0x1E => { // FX1E - I +=Vx
+                    }
+                    0x29 => { // FX29 - I=sprite_addr[Vx]
+                    }
+                    0x33 => { // FX33 - set_BCD(Vx); *(I+0)=BCD(3); *(I+1)=BCD(2); *(I+2)=BCD(1);
+                    }
+                    0x55 => { // FX55 - reg_dump(Vx,&I)
+                    }
+                    0x65 => { // FX65 - reg_load(Vx,&I)
+                    }
+                }
+            }
         }
     }
+}
 
-    fn execute_op() {
+fn execute_op() {
 
+}
+
+// 1NNN
+fn goto(&mut self, address: u16) {
+    self.PC = address;
+}
+
+// 3XNN
+fn skip_on_equal(&mut self, register: u8, value: u8) {
+    if self.V[register] == value {
+        self.PC += 2;
     }
-
-    // 1NNN
-    fn goto(&mut self, address: u16) {
-        self.PC = address;
-    }
-
-    // 3XNN
-    fn skip_on_equal(&mut self, register: u8, value: u8) {
-        if self.V[register] == value {
-            self.PC += 2;
-        }
-    }
+}
 }
