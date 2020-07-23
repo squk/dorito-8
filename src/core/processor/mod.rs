@@ -137,6 +137,12 @@ impl Processor {
                     0x18 => { // FX18 - sound_timer(Vx)
                     }
                     0x1E => { // FX1E - I +=Vx
+                        // Most CHIP-8 interpreters' FX1E instructions do not affect VF, with one
+                        // exception: The CHIP-8 interpreter for the Commodore Amiga sets VF to 1
+                        // when there is a range overflow (I+VX>0xFFF), and to 0 when there
+                        // isn't.[13] The only known game that depends on this behavior is
+                        // Spacefight 2091! while at least one game, Animal Race, depends on VF
+                        // not being affected.
                     }
                     0x29 => { // FX29 - I=sprite_addr[Vx]
                     }
@@ -150,21 +156,20 @@ impl Processor {
             }
         }
     }
-}
 
-fn execute_op() {
+    fn execute_op() {
 
-}
-
-// 1NNN
-fn goto(&mut self, address: u16) {
-    self.PC = address;
-}
-
-// 3XNN
-fn skip_on_equal(&mut self, register: u8, value: u8) {
-    if self.V[register] == value {
-        self.PC += 2;
     }
-}
+
+    // 1NNN
+    fn goto(&mut self, address: u16) {
+        self.PC = address;
+    }
+
+    // 3XNN
+    fn skip_on_equal(&mut self, register: u8, value: u8) {
+        if self.V[register] == value {
+            self.PC += 2;
+        }
+    }
 }
