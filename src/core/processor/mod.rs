@@ -31,9 +31,9 @@ impl Processor {
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
     fn decode_exec(&self, op: u16) {
-        let t = op & 0xF000; // first nibble
-        let x = op & 0xF00; // second nibble - used to look up one of the 16 registers
-        let y = op & 0xF0; // third nibble - also used to look up one of the 16 registers
+        let t = (op & 0xF000) >> 12; // first nibble
+        let x = (op & 0xF00) >> 8; // second nibble - used to look up one of the 16 registers
+        let y = (op & 0xF0) >> 4; // third nibble - also used to look up one of the 16 registers
         let n = op & 0xF; // fourth nibble
         let nn = op & 0xFF; // second byte - 8-bit immediate number
         let nnn = op & 0xFFF; // second, third and fourth nibbles - 12-bit immediate memory address.
@@ -47,7 +47,6 @@ impl Processor {
                 }
             }
             0x1 =>  { //  1NNN - goto NNN;
-
             }
             0x2 =>  { //  2NNN - *(0xNNN)()
 
