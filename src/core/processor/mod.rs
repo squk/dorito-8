@@ -52,19 +52,20 @@ impl Processor {
 
             }
             0x3 => { // 3XNN - if(Vx==NN)
-
+                self::skip_on_equal(x, nn);
             }
             0x4 => { // 4XNN - if(Vx!=NN)
-
+                self::skip_on_unequal(x, nn);
             }
             0x5 => {
                 if n == 0x0  {// 5XY0 - if(Vx==Vy)
+                    self::skip_on_equal_vars(x, y);
                 } else {
                     println!("invalid opcode")
                 }
             }
             0x6 => { // 6XNN - Vx = NN
-
+                self::set_register(x, nn);
             }
             0x7 => { // 7XNN - Vx += NN
 
@@ -72,7 +73,8 @@ impl Processor {
             0x8 => { // 8XY... bit ops and math
                 match n {
                     0x0 => { // 8XY0 - Vx=Vy
-
+                        let vy = self::V[y];
+                        self::set_register(x, vy);
                 }
                     0x1 => { // 8XY1 - Vx=Vx|Vy
 
@@ -170,5 +172,25 @@ impl Processor {
         if self.V[register] == value {
             self.PC += 2;
         }
+    }
+
+    // 4XNN
+    fn skip_on_unequal(&mut self, register: u8, value: u8) {
+        if self.V[register] != value {
+            self.PC += 2;
+        }
+    }
+
+    // 5XY0
+    fn skip_on_equal_vars(&mut self, x: u8, y: u8) {
+        if x == y {
+            self.PC += 2;
+        }
+    }
+
+    // 6XNN, 8XY0(???)
+    fn set_register(&mut self, register: u8, value: u8) {
+        //TODO does this need any validation?
+        self.V[register] = value;
     }
 }
