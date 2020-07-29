@@ -19,6 +19,7 @@ impl Default for Processor {
 }
 
 impl Processor {
+    // Since V[F] is our status register, we will use it often
     const F: u8 = 0xF;
     // run a single CPU cycle
     pub fn step(&self) {
@@ -63,7 +64,9 @@ impl Processor {
             }
             0x5 => {
                 if n == 0x0  {// 5XY0 - if(Vx==Vy)
-                    self::skip_on_equal(x, y);
+                    let vx = self::V[x];
+                    let vy = self::V[y];
+                    self::skip_on_equal(vx, vy);
                 } else {
                     println!("invalid opcode")
                 }
