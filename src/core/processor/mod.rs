@@ -22,11 +22,39 @@ impl Processor {
     // run a single CPU cycle
     pub fn step(&self) {
         // Fetch Opcode
-        let op = self.ram[self.PC]
+        let op1 = self.ram[self.PC as usize]
+        let op2 = self.ram[self.PC as usize]
+        let op = (op1 << 8) | op2;
 
-            // Decode Opcode
-            // Execute Opcode
-            self.decode_exec(op)
+        // Decode Opcode
+        // Execute Opcode
+        self.decode_exec(op)
+    }
+
+    fn init_ram(&mut self) {
+        const font_index: usize = 0x50;
+        let fontset : [u8; 80] = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+        ];
+
+        for n in 0..80 {
+            self.ram[font_index + n] = fontset[n];
+        }
     }
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
@@ -167,7 +195,7 @@ impl Processor {
 
     // 3XNN
     fn skip_on_equal(&mut self, register: u8, value: u8) {
-        if self.V[register] == value {
+        if self.V[register as usize] == value {
             self.PC += 2;
         }
     }
