@@ -1,14 +1,19 @@
+const ROM_INDEX: usize = 0x200;
 const RAM_SIZE: usize = 0x1000;
 const FONT_INDEX: usize = 0x50;
 const FONT_SIZE: usize = 0x50;
 
 pub struct Memory {
     ram: [u8; RAM_SIZE],
+    pub stack: Vec<u8>,
 }
 
 impl Default for Memory {
     fn default() -> Memory {
-        let mut m = Memory { ram: [0; RAM_SIZE] };
+        let mut m = Memory {
+            ram: [0; RAM_SIZE],
+            stack: vec![],
+        };
 
         let fontset: Vec<u8> = vec![
             0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -30,9 +35,6 @@ impl Default for Memory {
         ];
 
         m.write_bytes(FONT_INDEX as u16, fontset);
-        //for n in 0..FONT_SIZE {
-        //m.ram[FONT_INDEX + n] = fontset[n];
-        //}
 
         return m;
     }
@@ -65,6 +67,27 @@ impl Memory {
     pub fn write_bytes(&mut self, address: u16, bytes: Vec<u8>) {
         for i in 0..bytes.len() {
             self.write_u8(address, bytes[i])
+        }
+    }
+
+    pub fn load_rom(&mut self, filename: String) {
+        match std::fs::read(filename) {
+            Ok(bytes) => {
+                if bytes.len() > (RAM_SIZE - ROM_INDEX) {
+                    panic!("rom too large") // TODO: don't panic
+                }
+
+                for i in 0..bytes.len() {
+                    self.ram[ROM_INDEX + i] = bytes[i]
+                }
+            }
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::PermissionDenied {
+                    eprintln!("please run again with appropriate permissions.");
+                    return;
+                }
+                panic!("{}", e);
+            }
         }
     }
 }

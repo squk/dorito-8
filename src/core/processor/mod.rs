@@ -4,7 +4,7 @@ pub struct Processor {
     PC: u16,
     I: u16,
     V: [u8; 16],
-    Memory: Memory,
+    pub Memory: Memory,
 }
 
 impl Default for Processor {
