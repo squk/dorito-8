@@ -1,10 +1,10 @@
-const RAM_SIZE: usize = 0x1000;
+use crate::core::memory::Memory;
 
 pub struct Processor {
     PC: u16,
     I: u16,
     V: [u8; 16],
-    ram: [u8; RAM_SIZE],
+    Memory: Memory,
 }
 
 impl Default for Processor {
@@ -13,7 +13,7 @@ impl Default for Processor {
             PC: 0x200,
             I: 0,
             V: [0; 16],
-            ram: [0; RAM_SIZE],
+            Memory: Memory::default(),
         }
     }
 }
@@ -22,39 +22,10 @@ impl Processor {
     // run a single CPU cycle
     pub fn step(&self) {
         // Fetch Opcode
-        let op1 = self.ram[self.PC as usize]
-        let op2 = self.ram[self.PC as usize]
-        let op = (op1 << 8) | op2;
-
+        let op = self.Memory.read_u16(self.PC);
         // Decode Opcode
         // Execute Opcode
-        self.decode_exec(op)
-    }
-
-    fn init_ram(&mut self) {
-        const font_index: usize = 0x50;
-        let fontset : [u8; 80] = [
-            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-            0x20, 0x60, 0x20, 0x20, 0x70, // 1
-            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-            0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-        ];
-
-        for n in 0..80 {
-            self.ram[font_index + n] = fontset[n];
-        }
+        self.decode_exec(op);
     }
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
@@ -70,87 +41,67 @@ impl Processor {
             0x0 => {
                 match op {
                     0x00E0 => {} // disp_clear()
-                    0x0EE => {} // return;
-                    _ => {} // call - 0NNN
+                    0x0EE => {}  // return;
+                    _ => {}      // call - 0NNN
                 }
             }
-            0x1 =>  { //  1NNN - goto NNN;
+            0x1 => { //  1NNN - goto NNN;
             }
-            0x2 =>  { //  2NNN - *(0xNNN)()
-
+            0x2 => { //  2NNN - *(0xNNN)()
             }
             0x3 => { // 3XNN - if(Vx==NN)
-
             }
             0x4 => { // 4XNN - if(Vx!=NN)
-
             }
             0x5 => {
-                if n == 0x0  {// 5XY0 - if(Vx==Vy)
+                if n == 0x0 { // 5XY0 - if(Vx==Vy)
                 } else {
                     println!("invalid opcode")
                 }
             }
             0x6 => { // 6XNN - Vx = NN
-
             }
             0x7 => { // 7XNN - Vx += NN
-
             }
-            0x8 => { // 8XY... bit ops and math
+            0x8 => {
+                // 8XY... bit ops and math
                 match n {
                     0x0 => { // 8XY0 - Vx=Vy
-
-                }
+                    }
                     0x1 => { // 8XY1 - Vx=Vx|Vy
-
-                }
+                    }
                     0x2 => { // 8XY2 - Vx=Vx&Vy
-
-                }
+                    }
                     0x3 => { // 8XY3 - Vx=Vx^Vy
-
-                }
+                    }
                     0x4 => { // 8XY4 - Vx += Vy
-
-                }
+                    }
                     0x5 => { // 8XY5 - Vx -= Vy
-
-                }
+                    }
                     0x6 => { // 8XY6 - Vx>>=1
-
-                }
+                    }
                     0x7 => { // 8XY7 - Vx=Vy-Vx
-
-                }
+                    }
                     0xE => { // 8XYE - Vx<<=1
-                }
-                    _ => {
-                        println!("invalid opcode")
-                }
+                    }
+                    _ => println!("invalid opcode"),
                 }
             }
-            0xA =>  { // ANNN - I = NNN
-
+            0xA => { // ANNN - I = NNN
             }
-            0xB =>  { // BNNN - PC=V0+NNN
-
+            0xB => { // BNNN - PC=V0+NNN
             }
             0xC => { // CXNN - Vx=rand()&NN
-
             }
             0xD => { // DXYN - draw(Vx,Vy,N)
-
             }
             0xE => {
                 match nn {
-                    0x9E  => { // EX9E - if(key()==Vx)
+                    0x9E => { // EX9E - if(key()==Vx)
                     }
                     0xA1 => { // EXA1 - if(key()!=Vx)
                     }
-                    _ => {
-                        println!("invalid opcode")
-                    }
+                    _ => println!("invalid opcode"),
                 }
             }
             0xF => {
@@ -164,12 +115,12 @@ impl Processor {
                     0x18 => { // FX18 - sound_timer(Vx)
                     }
                     0x1E => { // FX1E - I +=Vx
-                        // Most CHIP-8 interpreters' FX1E instructions do not affect VF, with one
-                        // exception: The CHIP-8 interpreter for the Commodore Amiga sets VF to 1
-                        // when there is a range overflow (I+VX>0xFFF), and to 0 when there
-                        // isn't.[13] The only known game that depends on this behavior is
-                        // Spacefight 2091! while at least one game, Animal Race, depends on VF
-                        // not being affected.
+                         // Most CHIP-8 interpreters' FX1E instructions do not affect VF, with one
+                         // exception: The CHIP-8 interpreter for the Commodore Amiga sets VF to 1
+                         // when there is a range overflow (I+VX>0xFFF), and to 0 when there
+                         // isn't.[13] The only known game that depends on this behavior is
+                         // Spacefight 2091! while at least one game, Animal Race, depends on VF
+                         // not being affected.
                     }
                     0x29 => { // FX29 - I=sprite_addr[Vx]
                     }
@@ -184,9 +135,7 @@ impl Processor {
         }
     }
 
-    fn execute_op() {
-
-    }
+    fn execute_op() {}
 
     // 1NNN
     fn goto(&mut self, address: u16) {

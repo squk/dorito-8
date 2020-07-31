@@ -4,7 +4,7 @@ mod core;
 
 fn main() {
     let p = Processor::default();
-    while {
+    loop {
         p.step();
     }
 }
