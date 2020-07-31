@@ -10,7 +10,7 @@ impl Default for Memory {
     fn default() -> Memory {
         let mut m = Memory { ram: [0; RAM_SIZE] };
 
-        let fontset: [u8; FONT_SIZE] = [
+        let fontset: Vec<u8> = vec![
             0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
             0x20, 0x60, 0x20, 0x20, 0x70, // 1
             0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -29,22 +29,42 @@ impl Default for Memory {
             0xF0, 0x80, 0xF0, 0x80, 0x80, // F
         ];
 
-        for n in 0..FONT_SIZE {
-            m.ram[FONT_INDEX + n] = fontset[n];
-        }
+        m.write_bytes(FONT_INDEX as u16, fontset);
+        //for n in 0..FONT_SIZE {
+        //m.ram[FONT_INDEX + n] = fontset[n];
+        //}
 
         return m;
     }
 }
 
 impl Memory {
+    // read a byte from an address
     pub fn read_u8(&self, address: u16) -> u8 {
         self.ram[address as usize]
     }
 
+    // read two bytes from an address
     pub fn read_u16(&self, address: u16) -> u16 {
         let b1: u16 = (self.ram[address as usize] as u16) << 8;
         let b2: u16 = self.ram[(address + 1) as usize] as u16;
         b1 | b2
+    }
+
+    // write a byte to an address
+    pub fn write_u8(&mut self, address: u16, value: u8) {
+        self.ram[address as usize] = value;
+    }
+
+    // write 2 bytes to an address
+    pub fn write_u16(&mut self, address: u16, value: u16) {
+        self.ram[address as usize] = ((value & 0xFF00) >> 8) as u8;
+        self.ram[(address + 1) as usize] = (value & 0xFF) as u8;
+    }
+
+    pub fn write_bytes(&mut self, address: u16, bytes: Vec<u8>) {
+        for i in 0..bytes.len() {
+            self.write_u8(address, bytes[i])
+        }
     }
 }
