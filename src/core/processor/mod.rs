@@ -87,6 +87,13 @@ impl Processor {
                     _ => println!("invalid opcode"),
                 }
             }
+            0x9 => {
+                match n {
+                    0x0 => { // 9XY0 - if(Vx!=Vy)
+                    }
+                    _ => println!("invalid opcode"),
+                }
+            }
             0xA => { // ANNN - I = NNN
             }
             0xB => { // BNNN - PC=V0+NNN
@@ -130,8 +137,10 @@ impl Processor {
                     }
                     0x65 => { // FX65 - reg_load(Vx,&I)
                     }
+                    _ => println!("invalid opcode"),
                 }
             }
+            _ => println!("invalid opcode"),
         }
     }
 
