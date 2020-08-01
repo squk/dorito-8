@@ -1,3 +1,4 @@
+use crate::core::display::Display;
 use crate::core::memory::Memory;
 
 pub struct Processor {
@@ -5,6 +6,7 @@ pub struct Processor {
     I: u16,
     V: [u8; 16],
     pub Memory: Memory,
+    pub Display: Display,
 }
 
 impl Default for Processor {
@@ -14,6 +16,7 @@ impl Default for Processor {
             I: 0,
             V: [0; 16],
             Memory: Memory::default(),
+            Display: Display::default(),
         }
     }
 }

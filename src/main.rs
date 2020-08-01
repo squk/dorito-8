@@ -8,5 +8,6 @@ fn main() {
 
     loop {
         p.step();
+        p.Display.draw();
     }
 }
