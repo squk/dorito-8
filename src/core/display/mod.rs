@@ -64,7 +64,7 @@ impl Display {
         let green = Color::RGB(0, 255, 0);
         let yellow = Color::RGB(255, 255, 0);
         let red = Color::RGB(255, 0, 0);
-        let cyon = Color::RGB(0, 255, 255);
+        let cyan = Color::RGB(0, 255, 255);
         let purple = Color::RGB(255, 0, 255);
 
         let mut events = self.ctx.event_pump().unwrap();
@@ -85,18 +85,11 @@ impl Display {
         self.canvas.set_draw_color(black);
         self.canvas.clear();
 
-        for x in 0..self.width {
-            for y in 0..self.height {
-                let mut color: Color;
-                if (x % 2 == 0) && (y % 2 == 0) {
-                    color = green;
-                } else if (x % 2 == 1) && (y % 2 == 1) {
-                    color = purple;
-                } else {
-
-                self.draw_px(x as i16, y as i16, color);
-            }
-        }
+        // draw a pixel on the corner boundaries
+        self.draw_px(0, 0, white);
+        self.draw_px((self.width - 1) as i16, 0, green);
+        self.draw_px(0, (self.height - 1) as i16, red);
+        self.draw_px((self.width - 1) as i16, (self.height - 1) as i16, purple);
 
         self.canvas.set_draw_color(black);
         self.canvas.present();
@@ -105,13 +98,10 @@ impl Display {
     // draws a single "pixel", actually just a rect
     pub fn draw_px(&mut self, x: i16, y: i16, color: Color) {
         let size = self.canvas.window().size();
-        println!("size {:?}", size);
         let w = (size.0 as f32 / self.width as f32); // width ratio
-        println!("{}", w);
 
         let x1: i32 = (w * x as f32) as i32;
         let x2: u32 = x1 as u32 + w as u32;
-        println!("{} {}", x1, x2);
 
         let y1: i32 = (w * y as f32) as i32;
         let y2: u32 = y1 as u32 + w as u32;
