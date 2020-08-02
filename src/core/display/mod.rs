@@ -35,6 +35,7 @@ impl Default for Display {
         let window = match video
             .window("dorito-8", DEFAULT_WIDTH, DEFAULT_HEIGHT)
             .position_centered()
+            .resizable()
             .opengl()
             .build()
         {
@@ -83,5 +84,40 @@ impl Display {
 
         self.canvas.set_draw_color(black);
         self.canvas.clear();
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let mut color: Color;
+                if (x % 2 == 0) && (y % 2 == 0) {
+                    color = green;
+                } else if (x % 2 == 1) && (y % 2 == 1) {
+                    color = purple;
+                } else {
+
+                self.draw_px(x as i16, y as i16, color);
+            }
+        }
+
+        self.canvas.set_draw_color(black);
+        self.canvas.present();
+    }
+
+    // draws a single "pixel", actually just a rect
+    pub fn draw_px(&mut self, x: i16, y: i16, color: Color) {
+        let size = self.canvas.window().size();
+        println!("size {:?}", size);
+        let w = (size.0 as f32 / self.width as f32); // width ratio
+        println!("{}", w);
+
+        let x1: i32 = (w * x as f32) as i32;
+        let x2: u32 = x1 as u32 + w as u32;
+        println!("{} {}", x1, x2);
+
+        let y1: i32 = (w * y as f32) as i32;
+        let y2: u32 = y1 as u32 + w as u32;
+
+        //let _ = self.canvas.rectangle(x1, y1, x2, y2, color);
+        self.canvas.set_draw_color(color);
+        let _ = self.canvas.fill_rect(Rect::new(x1, y1, x2, y2));
     }
 }

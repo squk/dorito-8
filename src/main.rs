@@ -7,7 +7,7 @@ fn main() {
     p.Memory.load_rom(String::from("roms/PONG"));
 
     loop {
-        p.step();
+        //p.step();
         p.Display.draw();
     }
 }
