@@ -5,15 +5,11 @@ const FONT_SIZE: usize = 0x50;
 
 pub struct Memory {
     ram: [u8; RAM_SIZE],
-    pub stack: Vec<u8>,
 }
 
 impl Default for Memory {
     fn default() -> Memory {
-        let mut m = Memory {
-            ram: [0; RAM_SIZE],
-            stack: vec![],
-        };
+        let mut m = Memory { ram: [0; RAM_SIZE] };
 
         let fontset: Vec<u8> = vec![
             0xF0, 0x90, 0x90, 0x90, 0xF0, // 0

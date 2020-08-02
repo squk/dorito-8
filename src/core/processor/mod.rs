@@ -5,6 +5,7 @@ pub struct Processor {
     PC: u16,
     I: u16,
     V: [u8; 16],
+    stack: [u16; 16],
     pub Memory: Memory,
     pub Display: Display,
 }
@@ -15,6 +16,7 @@ impl Default for Processor {
             PC: 0x200,
             I: 0,
             V: [0; 16],
+            stack: [0; 16],
             Memory: Memory::default(),
             Display: Display::default(),
         }
