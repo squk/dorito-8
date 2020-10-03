@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 
 [dependencies.sdl2]
-version = "0.30.0"
+version = "0.34"
 default-features = false
 features = ["image", "gfx"]

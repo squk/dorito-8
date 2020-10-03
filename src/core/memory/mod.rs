@@ -86,4 +86,12 @@ impl Memory {
             }
         }
     }
+
+    pub fn shift_right(&mut self, register: u16) {
+        // self.ram[register] >> 1;
+    }
+
+    pub fn shift_left(&mut self, register: u16) {
+        // self.ram[register] << 1;
+    }
 }

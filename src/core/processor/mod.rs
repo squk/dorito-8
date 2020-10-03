@@ -1,10 +1,11 @@
 use crate::core::display::Display;
 use crate::core::memory::Memory;
+use sdl2::gfx::imagefilter::add;
 
 pub struct Processor {
     PC: u16,
     I: u16,
-    V: [u8; 16],
+    pub V: Memory,
     stack: [u16; 16],
     pub Memory: Memory,
     pub Display: Display,
@@ -15,7 +16,7 @@ impl Default for Processor {
         Processor {
             PC: 0x200,
             I: 0,
-            V: [0; 16],
+            V: Memory::default(),
             stack: [0; 16],
             Memory: Memory::default(),
             Display: Display::default(),
@@ -25,7 +26,7 @@ impl Default for Processor {
 
 impl Processor {
     // run a single CPU cycle
-    pub fn step(&self) {
+    pub fn step(&mut self) {
         // Fetch Opcode
         let op = self.Memory.read_u16(self.PC);
         // Decode Opcode
@@ -34,7 +35,7 @@ impl Processor {
     }
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
-    fn decode_exec(&self, op: u16) {
+    fn decode_exec(&mut self, op: u16) {
         let t = (op & 0xF000) >> 12; // first nibble
         let x = (op & 0xF00) >> 8; // second nibble - used to look up one of the 16 registers
         let y = (op & 0xF0) >> 4; // third nibble - also used to look up one of the 16 registers
@@ -51,43 +52,77 @@ impl Processor {
                 }
             }
             0x1 => { //  1NNN - goto NNN;
+                self.goto(nnn);
             }
             0x2 => { //  2NNN - *(0xNNN)()
             }
             0x3 => { // 3XNN - if(Vx==NN)
+                self.skip_on_equal(x, nn);
             }
             0x4 => { // 4XNN - if(Vx!=NN)
+                self.skip_on_unequal(x, nn);
             }
             0x5 => {
                 if n == 0x0 { // 5XY0 - if(Vx==Vy)
+                    let vy = self.V.read_u16(y);
+                    self.skip_on_equal(x, vy);
                 } else {
                     println!("invalid opcode")
                 }
             }
             0x6 => { // 6XNN - Vx = NN
+                self.V.write_u16(x, nn);
             }
             0x7 => { // 7XNN - Vx += NN
+                self.add_to_register(x, nn);
             }
             0x8 => {
                 // 8XY... bit ops and math
                 match n {
                     0x0 => { // 8XY0 - Vx=Vy
+                        let vy = self.V.read_u8(y);
+                        self.V.write_u8(x, vy);
                     }
                     0x1 => { // 8XY1 - Vx=Vx|Vy
+                        let z = self.V.read_u8(x) | self.V.read_u8(y);
+
+                        self.V.write_u8(x, z);
                     }
                     0x2 => { // 8XY2 - Vx=Vx&Vy
+                        let z = self.V.read_u8(x) & self.V.read_u8(y);
+
+                        self.V.write_u8(x, z);
                     }
                     0x3 => { // 8XY3 - Vx=Vx^Vy
+                        let z = self.V.read_u8(x) ^ self.V.read_u8(y);
+
+                        self.V.write_u8(x, z);
                     }
                     0x4 => { // 8XY4 - Vx += Vy
+                        //TODO add, and figure out carry
                     }
                     0x5 => { // 8XY5 - Vx -= Vy
+                        //TODO subtract and figure out borrow
                     }
                     0x6 => { // 8XY6 - Vx>>=1
+                        //get least significant bit
+                        let lsb = (self.V.read_u8(x) & 0x1);
+                        //f is our Special register
+                        self.V.write_u8(0xF, lsb);
+
+                        self.V.shift_right(x);
                     }
                     0x7 => { // 8XY7 - Vx=Vy-Vx
+                        let z = self.V.read_u8(y) - self.V.read_u8(x);
+
+                        self.V.write_u8(x, z);
                     }
                     0xE => { // 8XYE - Vx<<=1
+                        //get most significant bit, 0x80 == 1000 0000
+                        let msb = (self.V.read_u8(x) & 0x80);
+                        self.V.write_u8(0xF, msb);
+
+                        self.V.shift_left(x);
                     }
                     _ => println!("invalid opcode"),
                 }
@@ -100,8 +135,11 @@ impl Processor {
                 }
             }
             0xA => { // ANNN - I = NNN
+                // .self::set_i(nnn);
             }
             0xB => { // BNNN - PC=V0+NNN
+                let address = self.V.read_u16(0) + nnn;
+                self.goto(address);
             }
             0xC => { // CXNN - Vx=rand()&NN
             }
@@ -156,10 +194,22 @@ impl Processor {
         self.PC = address;
     }
 
-    // 3XNN
-    fn skip_on_equal(&mut self, register: u8, value: u8) {
-        if self.V[register as usize] == value {
+    // 3XNN, 5XY0
+    fn skip_on_equal(&mut self, register: u16, value: u16) {
+        if self.V.read_u16(register) == value {
             self.PC += 2;
         }
+    }
+
+    // 4XNN
+    pub fn skip_on_unequal(&mut self, register: u16, value: u16) {
+        if self.V.read_u16(register) != value {
+            self.PC += 2;
+        }
+    }
+
+    fn add_to_register(&mut self, register: u16, value: u16) {
+        let newVal: u16 = value + self.V.read_u16(register);
+        self.V.write_u16(register, newVal);
     }
 }
