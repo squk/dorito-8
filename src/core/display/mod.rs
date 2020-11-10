@@ -110,4 +110,8 @@ impl Display {
         self.canvas.set_draw_color(color);
         let _ = self.canvas.fill_rect(Rect::new(x1, y1, x2, y2));
     }
+
+    pub fn clear(&mut self) {
+        self.canvas.clear();
+    }
 }
