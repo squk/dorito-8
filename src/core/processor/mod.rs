@@ -9,6 +9,8 @@ pub struct Processor {
     pub V: [u16; 16],
     pub Memory: Memory,
     pub Display: Display,
+    pub delay: u8,
+    pub sound: u8,
 }
 
 impl Default for Processor {
@@ -21,6 +23,8 @@ impl Default for Processor {
             V: [0; 16],
             Memory: Memory::default(),
             Display: Display::default(),
+            delay: 0,
+            sound: 0,
         }
     }
 }
@@ -35,6 +39,16 @@ impl Processor {
         self.decode_exec(op);
     }
 
+    pub fn timers(&mut self) {
+        if self.delay > 0 {
+            self.delay -= 1;
+        }
+        if self.sound > 0 {
+            //TODO emit sound
+            self.sound -= 1;
+        }
+    }
+
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
     fn decode_exec(&mut self, op: u16) {
         let t = (op & 0xF000) >> 12; // first nibble
@@ -44,13 +58,14 @@ impl Processor {
         let nn = op & 0xFF; // second byte - 8-bit immediate number
         let nnn = op & 0xFFF; // second, third and fourth nibbles - 12-bit immediate memory address.
 
+        //convinient for accessing V register
         let ix = x as usize;
         let iy = y as usize;
 
         match t {
             0x0 => {
-                match op {
-                    0x00E0 => {
+                match nnn {
+                    0x0E0 => {
                         self.Display.clear();
                     }
                     0x0EE => {}  // return;
@@ -65,17 +80,16 @@ impl Processor {
                 self.goto(nnn);
             }
             0x3 => { // 3XNN - if(Vx==NN)
-                //if self.V[x as usize] == nn {
+                //self.skip_on_equal(x, nn);
                 if self.V[ix] == nn {
                     self.PC += 2;
                 }
-                //self.skip_on_equal(x, nn);
             }
             0x4 => { // 4XNN - if(Vx!=NN)
+                //self.skip_on_unequal(x, nn);
                 if self.V[ix] != nn {
                     self.PC += 2;
                 }
-                //self.skip_on_unequal(x, nn);
             }
             0x5 => {
                 match n {
@@ -145,6 +159,7 @@ impl Processor {
                         self.V[0xF] = lsb;
 
                         //self.V.shift_right(x);
+                        self.V[ix] = self.V[ix] >> 1;
                     }
                     0x7 => { // 8XY7 - Vx=Vy-Vx
                         let z = self.V[iy] - self.V[ix];
@@ -162,6 +177,7 @@ impl Processor {
                         self.V[0xF] = msb;
 
                         //self.V.shift_left(x);
+                        self.V[ix] = self.V[ix] << 1;
                     }
                     _ => println!("invalid opcode"),
                 }
