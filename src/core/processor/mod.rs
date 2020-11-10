@@ -1,5 +1,6 @@
 use crate::core::display::Display;
 use crate::core::memory::Memory;
+use rand::{Rng, thread_rng};
 
 pub struct Processor {
     PC: u16,
@@ -9,8 +10,9 @@ pub struct Processor {
     pub V: [u16; 16],
     pub Memory: Memory,
     pub Display: Display,
-    pub delay: u8,
-    pub sound: u8,
+    pub delay: u16,
+    pub sound: u16,
+    draw_flag: bool,
 }
 
 impl Default for Processor {
@@ -25,6 +27,7 @@ impl Default for Processor {
             Display: Display::default(),
             delay: 0,
             sound: 0,
+            draw_flag: false,
         }
     }
 }
@@ -34,9 +37,14 @@ impl Processor {
     pub fn step(&mut self) {
         // Fetch Opcode
         let op = self.Memory.read_u16(self.PC);
-        // Decode Opcode
-        // Execute Opcode
+        // Decode and Execute Opcode
         self.decode_exec(op);
+        // Decrement timers
+        self.timers();
+        if self.draw_flag {
+            self.Display.draw();
+            self.draw_flag = false;
+        }
     }
 
     pub fn timers(&mut self) {
@@ -66,9 +74,16 @@ impl Processor {
             0x0 => {
                 match nnn {
                     0x0E0 => {
+                        self.draw_flag = true;
                         self.Display.clear();
                     }
-                    0x0EE => {}  // return;
+                    0x0EE => {
+                        // return from subroutine;
+                        let sp = self.stack.pop();
+                        if !sp.is_none() {
+                            self.PC = sp.unwrap();
+                        }
+                    }  
                     _ => {}      // call - 0NNN
                 }
             }
@@ -100,8 +115,6 @@ impl Processor {
                             self.PC += 2;
                         }
                     }
-                    0x2 => {}
-                    0x3 => {}
                     _ =>{
                         println!("invalid opcode")
                     }
@@ -201,13 +214,31 @@ impl Processor {
                 self.goto(address);
             }
             0xC => { // CXNN - Vx=rand()&NN
-                //TODO
+                let mut rng = thread_rng();
+                let z: u16 = rng.gen::<u16>() & nn;
+                self.V[ix] = z;
             }
             0xD => { // DXYN - draw(Vx,Vy,N)
-                //TODO
-                //let xx = self.V[ix];
-                //let yy = self.V[iy];
-                //self.Display.draw_px(self.V[x], yy, Color::RGB(n, n, n));
+                // set draw flag to refresh screen and reset F register
+                self.V[0xF] =0;
+                self.draw_flag = true;
+                // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
+                // for n rows of sprite data
+                for yline in 0..n {
+                    //get sprite data from memory
+                    let row = self.Memory.read_u8(self.I + yline);
+                    let yc = (self.V[iy] + yline) % 32;//default height
+                    for xline in 0..8 {
+                        let xc = (self.V[ix] + xline) % 64;//default width
+                        let mut pixel = self.Display.frame_buffer[xc as usize][yc as usize];
+                        let newval = row & (0x80 >> xline) != 0;
+                        if pixel && newval {
+                            self.V[0xF] = 1;
+                        }
+                        pixel ^= newval;
+                    }
+                }
+                self.PC += 2;
             }
             0xE => {
                 match nn {
@@ -225,8 +256,10 @@ impl Processor {
                     0x0A => { // FX0A - Vx = get_key()
                     }
                     0x15 => { // FX15 - delay_timer(Vx)
+                        self.delay = self.V[ix];
                     }
                     0x18 => { // FX18 - sound_timer(Vx)
+                        self.sound = self.V[ix];
                     }
                     0x1E => { // FX1E - I +=Vx
                          // Most CHIP-8 interpreters' FX1E instructions do not affect VF, with one

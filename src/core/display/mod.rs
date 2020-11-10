@@ -16,7 +16,8 @@ const DEFAULT_HEIGHT: u32 = 32;
 pub struct Display {
     pub width: u32,
     pub height: u32,
-    display_buffer: Vec<u8>,
+    pub display_buffer: Vec<u8>,
+    pub frame_buffer: [[bool; 32]; 64],
 
     ctx: sdl2::Sdl,
     video: sdl2::VideoSubsystem,
@@ -47,6 +48,7 @@ impl Default for Display {
 
         Display {
             display_buffer: vec![],
+            frame_buffer: [[false; 32]; 64],
             width: DEFAULT_WIDTH,
             height: DEFAULT_HEIGHT,
 
@@ -85,20 +87,31 @@ impl Display {
         self.canvas.set_draw_color(black);
         self.canvas.clear();
 
-        // draw a pixel on the corner boundaries
+       /* // draw a pixel on the corner boundaries
         self.draw_px(0, 0, white);
-        self.draw_px((self.width - 1) as i16, 0, green);
-        self.draw_px(0, (self.height - 1) as i16, red);
-        self.draw_px((self.width - 1) as i16, (self.height - 1) as i16, purple);
+        self.draw_px((self.width - 1) as u16, 0, green);
+        self.draw_px(0, (self.height - 1) as u16, red);
+        self.draw_px((self.width - 1) as u16, (self.height - 1) as u16, purple);
+       */
+        //TODO
+        //draw each pixel in the frame buffer
+        for x in 0..DEFAULT_WIDTH as u16 {
+            for y in 0..DEFAULT_HEIGHT as u16 {
+                if self.frame_buffer[x as usize][y as usize] {
+                    self.draw_px(x,y,black);
+                }
+            }
+        }
+
 
         self.canvas.set_draw_color(black);
         self.canvas.present();
     }
 
     // draws a single "pixel", actually just a rect
-    pub fn draw_px(&mut self, x: i16, y: i16, color: Color) {
+    pub fn draw_px(&mut self, x: u16, y: u16, color: Color) {
         let size = self.canvas.window().size();
-        let w = (size.0 as f32 / self.width as f32); // width ratio
+        let w = size.0 as f32 / self.width as f32; // width ratio
 
         let x1: i32 = (w * x as f32) as i32;
         let x2: u32 = x1 as u32 + w as u32;
