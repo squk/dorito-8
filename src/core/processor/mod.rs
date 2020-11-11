@@ -7,12 +7,12 @@ pub struct Processor {
     I: u16,
     //stack: [u16; 16],
     stack: Vec<u16>,
-    pub V: [u16; 16],
+    pub V: [u8; 16],
     pub Memory: Memory,
     pub Display: Display,
-    pub delay: u16,
-    pub sound: u16,
-    draw_flag: bool,
+    pub delay: u8,
+    pub sound: u8,
+    pub draw_flag: bool,
 }
 
 impl Default for Processor {
@@ -41,10 +41,6 @@ impl Processor {
         self.decode_exec(op);
         // Decrement timers
         self.timers();
-        if self.draw_flag {
-            self.Display.draw();
-            self.draw_flag = false;
-        }
     }
 
     pub fn timers(&mut self) {
@@ -59,11 +55,12 @@ impl Processor {
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
     fn decode_exec(&mut self, op: u16) {
+        println!("{}",op);
         let t = (op & 0xF000) >> 12; // first nibble
         let x = (op & 0xF00) >> 8; // second nibble - used to look up one of the 16 registers
         let y = (op & 0xF0) >> 4; // third nibble - also used to look up one of the 16 registers
         let n = op & 0xF; // fourth nibble
-        let nn = op & 0xFF; // second byte - 8-bit immediate number
+        let nn = (op & 0xFF) as u8; // second byte - 8-bit immediate number
         let nnn = op & 0xFFF; // second, third and fourth nibbles - 12-bit immediate memory address.
 
         //convinient for accessing V register
@@ -210,32 +207,38 @@ impl Processor {
                 self.I = nnn;
             }
             0xB => { // BNNN - PC=V0+NNN
-                let address = self.V[0] + nnn;
+                let address = self.V[0] as u16 + nnn;
                 self.goto(address);
             }
             0xC => { // CXNN - Vx=rand()&NN
                 let mut rng = thread_rng();
-                let z: u16 = rng.gen::<u16>() & nn;
+                let z: u8 = rng.gen::<u8>() & nn;
                 self.V[ix] = z;
             }
             0xD => { // DXYN - draw(Vx,Vy,N)
                 // set draw flag to refresh screen and reset F register
-                self.V[0xF] =0;
+                println!("DXYN");
+                self.V[0xF] = 0;
                 self.draw_flag = true;
                 // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
                 // for n rows of sprite data
                 for yline in 0..n {
                     //get sprite data from memory
                     let row = self.Memory.read_u8(self.I + yline);
-                    let yc = (self.V[iy] + yline) % 32;//default height
+                    let yc = (self.V[iy] + yline as u8) % 32;//default height
                     for xline in 0..8 {
                         let xc = (self.V[ix] + xline) % 64;//default width
-                        let mut pixel = self.Display.frame_buffer[xc as usize][yc as usize];
-                        let newval = row & (0x80 >> xline) != 0;
-                        if pixel && newval {
+                        let fb = ((yc * 32) + xc) as usize;
+                        let pixel = self.Display.frame_buffer[fb];
+                        //flip pixel
+                        if pixel == 1 {
                             self.V[0xF] = 1;
+                            self.Display.frame_buffer[fb] = 1;
+                            println!("HOLY FUCK");
+                        } else {
+                            self.Display.frame_buffer[fb] = 1;
+                            println!("HOLY SHIT");
                         }
-                        pixel ^= newval;
                     }
                 }
                 self.PC += 2;
@@ -292,21 +295,21 @@ impl Processor {
     }
 
     // 3XNN, 5XY0
-    fn skip_on_equal(&mut self, register: u16, value: u16) {
+    fn skip_on_equal(&mut self, register: u8, value: u8) {
         if self.V[register as usize] == value {
             self.PC += 2;
         }
     }
 
     // 4XNN
-    pub fn skip_on_unequal(&mut self, register: u16, value: u16) {
+    pub fn skip_on_unequal(&mut self, register: u8, value: u8) {
         if self.V[register as usize] != value {
             self.PC += 2;
         }
     }
 
-    fn add_to_register(&mut self, register: u16, value: u16) {
-        let newVal: u16 = value + self.V[register as usize];
+    fn add_to_register(&mut self, register: u8, value: u8) {
+        let newVal: u8 = value + self.V[register as usize];
         self.V[register as usize] = newVal;
     }
 }

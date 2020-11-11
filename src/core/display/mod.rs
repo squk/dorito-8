@@ -17,7 +17,7 @@ pub struct Display {
     pub width: u32,
     pub height: u32,
     pub display_buffer: Vec<u8>,
-    pub frame_buffer: [[bool; 32]; 64],
+    pub frame_buffer: [u8; DEFAULT_WIDTH as usize * DEFAULT_HEIGHT as usize],
 
     ctx: sdl2::Sdl,
     video: sdl2::VideoSubsystem,
@@ -48,7 +48,7 @@ impl Default for Display {
 
         Display {
             display_buffer: vec![],
-            frame_buffer: [[false; 32]; 64],
+            frame_buffer: [0; DEFAULT_WIDTH as usize * DEFAULT_HEIGHT as usize],
             width: DEFAULT_WIDTH,
             height: DEFAULT_HEIGHT,
 
@@ -95,21 +95,33 @@ impl Display {
        */
         //TODO
         //draw each pixel in the frame buffer
-        for x in 0..DEFAULT_WIDTH as u16 {
-            for y in 0..DEFAULT_HEIGHT as u16 {
-                if self.frame_buffer[x as usize][y as usize] {
-                    self.draw_px(x,y,black);
-                }
+        for (i, &px) in self.frame_buffer.iter().enumerate() {
+            //println!("Drawing {}!", px);
+            if px == 1 {
+                let x = i % DEFAULT_HEIGHT as usize;
+                let y = (i - x) / DEFAULT_HEIGHT as usize;
+                let size = self.canvas.window().size();
+                let w = size.0 as f32 / self.width as f32; // width ratio
+
+                let x1: i32 = (w * x as f32) as i32;
+                let x2: u32 = x1 as u32 + w as u32;
+
+                let y1: i32 = (w * y as f32) as i32;
+                let y2: u32 = y1 as u32 + w as u32;
+
+                //let _ = self.canvas.rectangle(x1, y1, x2, y2, color);
+                self.canvas.set_draw_color(white);
+                let _ = self.canvas.fill_rect(Rect::new(x1, y1, x2, y2));
+                //self.draw_px(x as u16, y as u16, white);
             }
         }
-
 
         self.canvas.set_draw_color(black);
         self.canvas.present();
     }
 
     // draws a single "pixel", actually just a rect
-    pub fn draw_px(&mut self, x: u16, y: u16, color: Color) {
+    pub fn draw_px(mut self, x: u16, y: u16, color: Color) {
         let size = self.canvas.window().size();
         let w = size.0 as f32 / self.width as f32; // width ratio
 
