@@ -37,6 +37,7 @@ impl Processor {
     pub fn step(&mut self) {
         // Fetch Opcode
         let op = self.Memory.read_u16(self.PC);
+        //let op = 0xD111;
         // Decode and Execute Opcode
         self.decode_exec(op);
         // Decrement timers
@@ -55,7 +56,6 @@ impl Processor {
 
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
     fn decode_exec(&mut self, op: u16) {
-        println!("{}",op);
         let t = (op & 0xF000) >> 12; // first nibble
         let x = (op & 0xF00) >> 8; // second nibble - used to look up one of the 16 registers
         let y = (op & 0xF0) >> 4; // third nibble - also used to look up one of the 16 registers
@@ -233,11 +233,9 @@ impl Processor {
                         //flip pixel
                         if pixel == 1 {
                             self.V[0xF] = 1;
-                            self.Display.frame_buffer[fb] = 1;
-                            println!("HOLY FUCK");
+                            self.Display.frame_buffer[fb] = 0;
                         } else {
                             self.Display.frame_buffer[fb] = 1;
-                            println!("HOLY SHIT");
                         }
                     }
                 }
