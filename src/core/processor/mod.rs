@@ -13,6 +13,7 @@ pub struct Processor {
     pub delay: u8,
     pub sound: u8,
     pub draw_flag: bool,
+    pub key: [bool; 16],
 }
 
 impl Default for Processor {
@@ -28,6 +29,7 @@ impl Default for Processor {
             delay: 0,
             sound: 0,
             draw_flag: false,
+            key: [false; 16],//key mapping in main
         }
     }
 }
@@ -35,9 +37,16 @@ impl Default for Processor {
 impl Processor {
     // run a single CPU cycle
     pub fn step(&mut self) {
+        // TODO find better solution
+        if self.PC >= 0x1000 {
+            self.PC = 0x200;
+        }
+
         // Fetch Opcode
-        let op = self.Memory.read_u16(self.PC);
-        //let op = 0xD111;
+        //let op = self.Memory.read_u16(self.PC);
+        //println!("{:#06x}", op);
+        //println!("{:x}", self.PC);
+        let op = 0xD111;
         // Decode and Execute Opcode
         self.decode_exec(op);
         // Decrement timers
@@ -55,8 +64,19 @@ impl Processor {
         }
     }
 
+    fn getKey(&mut self) -> u8 {
+        for k in 0..16 {
+            if self.key[k] {
+                self.key[k] =  false;
+                return k as u8;
+            }
+        }
+        return 17;
+    }
+
     // https://tobiasvl.github.io/blog/write-a-chip-8-emulator/#decode
     fn decode_exec(&mut self, op: u16) {
+        //println!("{:x}", op);
         let t = (op & 0xF000) >> 12; // first nibble
         let x = ((op & 0xF00) >> 8) as usize; // second nibble - used to look up one of the 16 registers
         let y = ((op & 0xF0) >> 4) as usize; // third nibble - also used to look up one of the 16 registers
@@ -66,19 +86,49 @@ impl Processor {
 
         match t {
             0x0 => {
-                match nnn {
-                    0x0E0 => {
-                        self.draw_flag = true;
-                        self.Display.clear();
-                    }
-                    0x0EE => {
-                        // return from subroutine;
-                        let sp = self.stack.pop();
-                        if !sp.is_none() {
-                            self.PC = sp.unwrap();
+                match y {
+                    0x0 => {
+                        match nn {
+                            //return from subroutine
+                            0xEE => {
+                                let r = self.stack.pop();
+                                match r {
+                                    Some(a) => self.PC = a,
+                                    None => println!("AAA"),
+                                }
+                            }
+                            _ => {}
                         }
-                    }  
-                    _ => {}      // call - 0NNN
+                    }
+                    0x1 => {
+                    }
+                    0xB => {
+                        //scroll up
+                    }
+                    0xC => {
+                        //scroll down
+                    }
+                    0xD => {
+                        //scroll up
+                    }
+                    0xE => {
+                        match n {
+                            0x0 => {
+                                self.draw_flag = true;
+                                self.Display.clear();
+                            }
+                            0xE => {
+                                // return from subroutine;
+                                let sp = self.stack.pop();
+                                if !sp.is_none() {
+                                    self.PC = sp.unwrap();
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    0xF => {}
+                    _ => {} //call - 0NNN
                 }
             }
             0x1 => { //  1NNN - goto NNN;
@@ -110,7 +160,7 @@ impl Processor {
                         }
                     }
                     _ =>{
-                        println!("invalid opcode {}", op)
+                        println!("invalid opcode {:#06x}", op)
                     }
                 }
             }
@@ -118,7 +168,8 @@ impl Processor {
                 self.V[x] = nn;
             }
             0x7 => { // 7XNN - Vx += NN
-                self.V[x] = self.V[x] + nn;
+                let vx = self.V[x] as u16;
+                self.V[x] = (vx + nn as u16) as u8;
             }
             0x8 => {
                 // 8XY... bit ops and math
@@ -142,8 +193,7 @@ impl Processor {
                         self.V[x] = z;
                     }
                     0x4 => { // 8XY4 - Vx += Vy
-                        //TODO idk if this is the right way to handle overflow
-                        let z = (self.V[x] + self.V[y]) as u16;
+                        let z = self.V[x] as u16 + self.V[y] as u16;
                         if (z) > 255 {
                             self.V[0xF] = 1;
                         } else {
@@ -152,7 +202,6 @@ impl Processor {
                         self.V[x] = z as u8 & 0xFF;
                     }
                     0x5 => { // 8XY5 - Vx -= Vy
-                        //TODO idk if this is the right way to handle uderflow either
                         let vx = self.V[x] as i16;
                         let vy = self.V[y] as i16;
                         let z = (vx - vy) as i16;
@@ -189,10 +238,9 @@ impl Processor {
                         //f is our Special register
                         self.V[0xF] = msb;
 
-                        //self.V.shift_left(x);
                         self.V[x] = self.V[x] << 1;
                     }
-                    _ => println!("invalid opcode {}", op),
+                    _ => println!("invalid opcode {:#06x}", op),
                 }
             }
             0x9 => {
@@ -203,7 +251,7 @@ impl Processor {
                             self.PC += 2;
                         }
                     }
-                    _ => println!("invalid opcode {}", op),
+                    _ => println!("invalid opcode {:#06x}", op),
                 }
             }
             0xA => { // ANNN - I = NNN
@@ -227,14 +275,14 @@ impl Processor {
                 // for n rows of sprite data
                 for yline in 0..n {
                     //get sprite data from memory -- 8*y because 8 is width of 
-                    //sprite and we want to skip bits we've already checked
+                    //sprite and we want to skip bytes we've already checked
                     let row_byte = self.Memory.read_u8(self.I + (8*yline));
                     // set y coordinate
-                    let yc = (self.V[y] + yline as u8) % 32;//default height
+                    let yc = (self.V[y] + yline as u8) % 32;//mod by hieght to wrap
                     //All sprites are 8 wide
                     for xline in 0..8 {
                         // set x coordinate
-                        let xc = (self.V[x] + xline) % 64;//default width
+                        let xc = (self.V[x] + xline) % 64;//mod by width to wrap
                         let fb = (yc as usize * 32) + xc as usize;
                         let pixel = row_byte & (0x80 >> xline);
                         // if pixel is set, flip it
@@ -252,17 +300,32 @@ impl Processor {
             0xE => {
                 match nn {
                     0x9E => { // EX9E - if(key()==Vx)
+                        let k = self.V[x];
+                        if self.key[k as usize] {
+                            self.PC += 2;
+                        }
                     }
                     0xA1 => { // EXA1 - if(key()!=Vx)
+                        let k = self.V[x];
+                        if !self.key[k as usize] {
+                            self.PC += 2;
+                        }
                     }
-                    _ => println!("invalid opcode {}", op),
+                    _ => println!("invalid opcode {:#06x}", op),
                 }
             }
             0xF => {
                 match nn {
                     0x07 => { // FX07 - Vx = get_delay()
+                        self.V[x] = self.delay;
                     }
                     0x0A => { // FX0A - Vx = get_key()
+                        let k = self.getKey();
+                        if k != 17 {
+                            self.V[x] = k;
+                        } else {
+                            self.PC -= 2;
+                        }
                     }
                     0x15 => { // FX15 - delay_timer(Vx)
                         self.delay = self.V[x];
@@ -277,19 +340,37 @@ impl Processor {
                          // isn't.[13] The only known game that depends on this behavior is
                          // Spacefight 2091! while at least one game, Animal Race, depends on VF
                          // not being affected.
+                         self.I = self.I + self.V[x] as u16;
                     }
                     0x29 => { // FX29 - I=sprite_addr[Vx]
+                        //self.I = self.V[x] as u16;
+                        //TODO
+                        //self.I = self.Memory.FONT_INDEX + (5 * self.V[x]) as u16;
+                        self.I = 0x50 + (5 * self.V[x]) as u16;
                     }
                     0x33 => { // FX33 - set_BCD(Vx); *(I+0)=BCD(3); *(I+1)=BCD(2); *(I+2)=BCD(1);
+                        let mut val = self.V[x];
+                        let addr = self.I;
+                        self.Memory.write_u8(addr + 2, val%10);
+                        val /= 10;
+                        self.Memory.write_u8(addr + 1, val%10);
+                        val /= 10;
+                        self.Memory.write_u8(addr, val%10);
                     }
                     0x55 => { // FX55 - reg_dump(Vx,&I)
+                        for i in 0..=x {
+                            self.Memory.write_u8(self.I + i as u16, self.V[i]);
+                        }
                     }
                     0x65 => { // FX65 - reg_load(Vx,&I)
+                        for i in 0..=x {
+                            self.V[i] = self.Memory.read_u8(self.I + i as u16);
+                        }
                     }
-                    _ => println!("invalid opcode {}", op),
+                    _ => println!("invalid opcode {:#06x}", op),
                 }
             }
-            _ => println!("invalid opcode {} ", op),
+            _ => println!("invalid opcode {:#06x} ", op),
         }
     }
 
