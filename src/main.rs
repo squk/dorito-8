@@ -13,9 +13,9 @@ fn main() {
     let tm = time::Duration::from_millis(10);
 
     //p.Memory.load_rom(String::from("roms/PONG"));
-    p.Memory.load_rom(String::from("roms/pong.ch8"));
+    //p.Memory.load_rom(String::from("roms/pong.ch8"));
     //p.Memory.load_rom(String::from("roms/BC_test.ch8"));
-    //p.Memory.load_rom(String::from("roms/test_opcode.ch8"));
+    p.Memory.load_rom(String::from("roms/test_opcode2.ch8"));
 
     let mut events = p.Display.ctx.event_pump().unwrap();
 
